@@ -1,0 +1,24 @@
+# Sanal ortam (~2 GB) — kur.bat hedef makinede yeniden oluşturur
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Uygulama tarafından üretilenler
+logs/
+settings.json
+model-cache/
+
+# İşletim sistemi / düzenleyici
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/
+.idea/
+*.swp
