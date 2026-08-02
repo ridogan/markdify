@@ -32,6 +32,19 @@ Pencere üç sütundan oluşur: **dosya listesi**, **kaynak belge** (özgün PDF
 | Ayarlar | ⚙ düğmesi — PDF arka ucu, OCR, tema |
 | Sorun giderme | Sağ alttaki “Günlük” düğmesi (`logs/markdify.log`) |
 
+### İlerleme takibi
+
+Alt taraftaki çubuk **toplu iş** ilerlemesini gösterir ve gerçektir: tamamlanan
+dosya sayısı / toplam. Dosya listesinde işlenmekte olan satırın altında ise
+hareketli bir çubuk ile birlikte **geçen süre** ve PDF'lerde **sayfa sayısı**
+görünür; tamamlanan satırlarda süre kalır.
+
+> Satır çubuğu bilerek **yüzdesiz**dir. Docling dönüştürme sırasında ilerleme
+> bildirmez — ne geri çağrı, ne olay, ne de ilerleme parametresi vardır; sayfalar
+> dışarıdan erişilemeyen bir nesnede işlenir. Dolayısıyla tek bir dosya için
+> gösterilecek herhangi bir yüzde uydurma olurdu. Onun yerine yalnızca gerçekten
+> ölçülen bilgiler gösterilir.
+
 ### Kaynak belge sütunu
 
 Ortadaki sütun özgün belgeyi sayfa sayfa gösterir: ◀ ▶ ile sayfa gezinme, − / + ile

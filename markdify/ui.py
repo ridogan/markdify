@@ -28,7 +28,7 @@ from .conversion import (
     warm_extension_cache,
 )
 from .markdown_view import MarkdownView
-from .source_view import SourceView
+from .source_view import SourceView, count_pages
 
 # Sürükle-bırak isteğe bağlıdır; tkinterdnd2 yoksa uygulama yine çalışır.
 try:
@@ -90,20 +90,48 @@ class FileJob:
     original_output: str = ""  # dönüşümün ham hâli; "Sıfırla" buna döner
     error: str = ""
     duration: float = 0.0
+    started_at: float = 0.0   # time.monotonic; çalışırken geçen süre için
+    page_count: int | None = None  # PDF/görüntü ise sayfa sayısı, yoksa None
     row: "FileRow | None" = field(default=None, repr=False, compare=False)
 
     @property
     def edited(self) -> bool:
         return self.status is JobStatus.DONE and self.output != self.original_output
 
+    def detail_text(self) -> str:
+        """Satırın altındaki açıklama. Yalnızca ölçülen gerçekleri gösterir."""
+        pages = f"{self.page_count} sayfa" if self.page_count else ""
+
+        if self.status is JobStatus.RUNNING:
+            elapsed = time.monotonic() - self.started_at if self.started_at else 0.0
+            parts = [p for p in (pages, f"{elapsed:.0f} sn") if p]
+            return "dönüştürülüyor · " + " · ".join(parts)
+
+        if self.status is JobStatus.DONE:
+            parts = [p for p in (pages, f"{self.duration:.1f} sn") if p]
+            return " · ".join(parts)
+
+        if self.status is JobStatus.FAILED:
+            return "başarısız"
+        if self.status is JobStatus.CANCELLED:
+            return "iptal edildi"
+        return pages
+
 
 class FileRow(ctk.CTkFrame):
-    """Dosya listesindeki tek satır. Tüm listeyi yeniden kurmadan güncellenir."""
+    """Dosya listesindeki tek satır. Tüm listeyi yeniden kurmadan güncellenir.
+
+    İşlenmekte olan dosyada BELİRSİZ (hareketli) bir çubuk gösterilir, yüzdeli
+    değil: docling dönüşüm sırasında ilerleme bildirmez (ne geri çağrı, ne olay),
+    dolayısıyla gösterilecek her yüzde uydurma olurdu. Bunun yerine gerçekten
+    ölçülebilen bilgiler verilir — geçen süre ve (PDF ise) sayfa sayısı.
+    """
 
     def __init__(self, master, job: FileJob, on_select, on_remove) -> None:
         super().__init__(master, fg_color="transparent")
         self.grid_columnconfigure(1, weight=1)
         self._job = job
+        self._animating = False
 
         self.status_label = ctk.CTkLabel(self, text="", width=20)
         self.status_label.grid(row=0, column=0, padx=(4, 0))
@@ -126,15 +154,59 @@ class FileRow(ctk.CTkFrame):
             hover_color=("#c0392b", "#f85149"), command=on_remove,
         )
         self.remove_button.grid(row=0, column=2, padx=(0, 4))
+
+        self.progress = ctk.CTkProgressBar(self, height=3, corner_radius=2)
+        self.detail = ctk.CTkLabel(
+            self, text="", anchor="w", height=14,
+            font=ctk.CTkFont(size=10), text_color=("gray45", "gray60"),
+        )
         self.refresh()
 
+    # ------------------------------------------------------------------ #
+
     def refresh(self, selected: bool = False) -> None:
-        self.status_label.configure(
-            text=self._job.status.icon, text_color=self._job.status.color
-        )
+        job = self._job
+        self.status_label.configure(text=job.status.icon, text_color=job.status.color)
         self.name_button.configure(
             fg_color=("gray78", "gray32") if selected else "transparent"
         )
+
+        if job.status is JobStatus.RUNNING:
+            self._show_progress()
+        else:
+            self._hide_progress()
+
+        self._refresh_detail()
+
+    def _show_progress(self) -> None:
+        if not self._animating:
+            self.progress.grid(row=1, column=1, sticky="ew", pady=(0, 1))
+            self.progress.configure(mode="indeterminate")
+            self.progress.start()
+            self._animating = True
+
+    def _hide_progress(self) -> None:
+        if self._animating:
+            self.progress.stop()
+            self.progress.grid_remove()
+            self._animating = False
+
+    def _refresh_detail(self) -> None:
+        text = self._job.detail_text()
+        if text:
+            self.detail.configure(text=text)
+            self.detail.grid(row=2, column=1, sticky="ew", pady=(0, 2))
+        else:
+            self.detail.grid_remove()
+
+    def tick(self) -> None:
+        """Çalışırken geçen süreyi tazeler (arayüz döngüsünden çağrılır)."""
+        if self._job.status is JobStatus.RUNNING:
+            self._refresh_detail()
+
+    def destroy(self) -> None:  # type: ignore[override]
+        self._hide_progress()  # animasyon zamanlayıcısını bırak
+        super().destroy()
 
 
 class MainWindow(_Root):  # type: ignore[misc]
@@ -150,6 +222,7 @@ class MainWindow(_Root):  # type: ignore[misc]
         self._cancel = threading.Event()
         self._busy = False
         self._loading_editor = False  # düzenleyiciye program yazarken <<Modified>> susturulur
+        self._elapsed_ticks = 0       # geçen süre etiketini seyrek tazelemek için
 
         ctk.set_appearance_mode(self.settings.appearance)
         ctk.set_default_color_theme("blue")
@@ -858,11 +931,13 @@ class MainWindow(_Root):  # type: ignore[misc]
                         self._post("job", remaining)
                     break
 
+                job.page_count = count_pages(job.path)
+                job.started_at = time.monotonic()
                 job.status = JobStatus.RUNNING
                 self._post("job", job)
                 self._post("status", f"Dönüştürülüyor: {job.path.name} ({index + 1}/{total})")
 
-                started = time.monotonic()
+                started = job.started_at
                 try:
                     job.output = self.service.convert(job.path, output_format)
                     job.original_output = job.output  # "Sıfırla" bu hâle döner
@@ -901,6 +976,16 @@ class MainWindow(_Root):  # type: ignore[misc]
                 self._handle_event(kind, payload)
         except queue.Empty:
             pass
+
+        # Çalışan satırın geçen süresini tazele (saniyede ~2 kez yeter).
+        if self._busy:
+            self._elapsed_ticks += 1
+            if self._elapsed_ticks >= 6:
+                self._elapsed_ticks = 0
+                for job in self.jobs:
+                    if job.status is JobStatus.RUNNING and job.row is not None:
+                        job.row.tick()
+
         self.after(80, self._drain_events)
 
     def _handle_event(self, kind: str, payload: object) -> None:

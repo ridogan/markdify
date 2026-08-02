@@ -104,6 +104,28 @@ def open_source(path: Path) -> _Source:
     raise ValueError(f"Bu tür doğrudan önizlenemiyor: {suffix}")
 
 
+def count_pages(path: Path) -> int | None:
+    """PDF sayfa sayısı; belirlenemiyorsa ``None``.
+
+    Yalnızca gerçekten ölçülebilen bir bilgi döndürür — arayüzde tahmini yüzde
+    değil, "12 sayfa" gibi doğrulanabilir bir ayrıntı göstermek için kullanılır.
+    Ucuzdur: pypdfium2 belgeyi tembel açar, sayfaları çizmez.
+    """
+    if path.suffix.lower() not in PDF_EXTENSIONS:
+        return None
+    try:
+        import pypdfium2 as pdfium
+
+        document = pdfium.PdfDocument(str(path))
+        try:
+            return len(document)
+        finally:
+            document.close()  # Windows'ta dosya kilidini bırak
+    except Exception as exc:
+        logger.debug("Sayfa sayısı okunamadı (%s): %s", path.name, exc)
+        return None
+
+
 def convert_to_pdf(path: Path, output_dir: Path) -> Path:
     """Office belgesini LibreOffice ile PDF'e çevirir ve yolunu döndürür."""
     soffice = find_libreoffice()
