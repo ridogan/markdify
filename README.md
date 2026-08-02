@@ -131,7 +131,14 @@ markdify/
 - Dönüştürme daima ayrı bir iş parçacığında çalışır; `_conversion_worker`'ın `finally`
   bloğu, hata ne olursa olsun arayüzün “çalışıyor” durumunda kilitlenmemesini garanti eder.
 - Desteklenen uzantı listesi docling'in kendi kayıt defterinden okunur
-  (`conversion.supported_extensions`), elle bakım gerektirmez.
+  (`conversion.warm_extension_cache`), elle bakım gerektirmez. **Bu okuma arayüz
+  iş parçacığından yapılmamalıdır:** ilk `import docling` ~5 saniye sürer (torch
+  zinciri) ve Windows pencereyi "yanıt vermiyor" olarak işaretler. Açılışta arka
+  planda ısıtılır; `supported_extensions()` asla bloklamaz, hazır değilse eşdeğer
+  bir yerleşik listeyi döner.
+- Hazır olma sinyali için "modül `sys.modules` içinde mi" diye bakmayın: Python
+  modülü içe aktarım **bitmeden** oraya koyar, bu yüzden o kontrol yarış oluşturur
+  ve arayüz iş parçacığı arka plandaki içe aktarımın import kilidinde bloke olur.
 - Markdown görüntüleyici dış bağımlılık kullanmaz; `CTkTextbox` etiketlerde `font`
   seçeneğini yasakladığı için doğrudan `tkinter.Text` sarmalanır ve CTk teması elle
   uygulanır (`MarkdownView.apply_theme`).

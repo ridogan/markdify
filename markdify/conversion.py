@@ -69,27 +69,40 @@ class PdfBackend(str, Enum):
         return cls.AUTO
 
 
-# docling kurulu değilken (ilk açılış) kullanılan yedek liste.
+# docling 2.117'nin bildirdiği listenin anlık kopyası. Önbellek arka planda
+# hazırlanana kadar bu kullanılır; tam liste olduğu için açılışın ilk saniyelerinde
+# de doğru davranırız. warm_extension_cache() bunu docling'in güncel listesiyle
+# değiştirir, böylece yeni sürümler elle bakım gerektirmez.
 _FALLBACK_EXTENSIONS = frozenset({
-    ".pdf", ".docx", ".doc", ".pptx", ".ppt", ".xlsx", ".xls",
-    ".odt", ".ods", ".odp", ".html", ".htm", ".xhtml", ".epub",
-    ".md", ".csv", ".txt", ".adoc", ".asciidoc", ".tex",
-    ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp",
+    ".pdf",
+    ".doc", ".docm", ".docx", ".dot", ".dotm", ".dotx", ".odt",
+    ".ppt", ".pptm", ".pptx", ".pot", ".potm", ".potx", ".pps", ".ppsm", ".ppsx",
+    ".odp", ".otp",
+    ".xls", ".xlsm", ".xlsx", ".xlt", ".ods", ".ots", ".ott",
+    ".csv", ".txt", ".text", ".md", ".qmd", ".rmd",
+    ".htm", ".html", ".xhtml", ".xml", ".nxml", ".xbrl", ".json",
+    ".adoc", ".asc", ".asciidoc", ".latex", ".tex",
+    ".epub", ".eml", ".boxnote", ".dclg", ".dclg.xml", ".dclx", ".tar.gz",
+    ".bmp", ".jpeg", ".jpg", ".png", ".tif", ".tiff", ".webp",
+    ".aac", ".flac", ".m4a", ".mp3", ".ogg", ".wav",
+    ".avi", ".mkv", ".mov", ".mp4", ".webm", ".vtt",
 })
 
+# Yalnızca warm_extension_cache() tamamlandığında dolar. "docling sys.modules'da
+# mı" diye bakmak GÜVENİLMEZ: Python modülü içe aktarım BİTMEDEN sys.modules'a
+# koyar, dolayısıyla o kontrol yarış oluşturur ve arayüz iş parçacığı arka
+# plandaki içe aktarımın tuttuğu import kilidinde bloke olur.
 _extension_cache: frozenset[str] | None = None
 
 
-def supported_extensions() -> frozenset[str]:
-    """Docling'in gerçekten okuyabildiği uzantılar (nokta ile, küçük harf).
+def warm_extension_cache() -> None:
+    """Uzantı listesini docling'den okur ve önbelleğe alır.
 
-    Liste docling'in kendi kayıt defterinden okunur; böylece docling
-    güncellendiğinde uygulama elle bakım gerektirmeden güncel kalır.
+    ARKA PLAN İŞ PARÇACIĞINDAN ÇAĞIRIN. İlk ``import docling`` yaklaşık 5 saniye
+    sürer (torch/transformers zinciri); arayüz iş parçacığında yapılırsa Windows
+    pencereyi "yanıt vermiyor" olarak işaretler.
     """
     global _extension_cache
-    if _extension_cache is not None:
-        return _extension_cache
-
     try:
         from docling.datamodel.base_models import FormatToExtensions
 
@@ -99,11 +112,22 @@ def supported_extensions() -> frozenset[str]:
             for ext in extensions
         }
         _extension_cache = frozenset(found) or _FALLBACK_EXTENSIONS
+        logger.debug("Uzantı listesi docling'den alındı: %d tür", len(_extension_cache))
     except Exception as exc:
         logger.debug("Uzantı listesi docling'den alınamadı (%s); yedek liste kullanılıyor.", exc)
         _extension_cache = _FALLBACK_EXTENSIONS
 
-    return _extension_cache
+
+def supported_extensions() -> frozenset[str]:
+    """Okunabilen dosya uzantıları (nokta ile, küçük harf). **Asla bloklamaz.**
+
+    Önbellek hazırsa docling'in tam listesini, değilse yerleşik yedek listeyi
+    döner. Hiçbir koşulda docling'i içe aktarmaz; bu yüzden arayüz iş
+    parçacığından güvenle çağrılabilir. Tam listeyi ``warm_extension_cache``
+    arka planda hazırlar.
+    """
+    cached = _extension_cache  # tek okuma: arka plan iş parçacığı değiştirebilir
+    return cached if cached is not None else _FALLBACK_EXTENSIONS
 
 
 def is_supported(path: Path) -> bool:

@@ -25,6 +25,7 @@ from .conversion import (
     PdfBackend,
     is_supported,
     supported_extensions,
+    warm_extension_cache,
 )
 from .markdown_view import MarkdownView
 from .source_view import SourceView
@@ -162,7 +163,20 @@ class MainWindow(_Root):  # type: ignore[misc]
         self._build_ui()
         self._refresh_environment_banner()
         self._drain_events()
+        self._warm_caches()
         logger.info("Ortam: %s", environment.environment_report())
+
+    def _warm_caches(self) -> None:
+        """Pahalı ilk yüklemeleri arka planda yapar.
+
+        ``import docling`` yaklaşık 5 saniye sürer. Bu, dosya seçme penceresinin
+        uzantı süzgeci için gerekiyordu ve arayüz iş parçacığında yapıldığında
+        pencere "yanıt vermiyor" durumuna düşüyordu. Burada açılışta sessizce
+        hazırlanır; hazır olana kadar yerleşik yedek liste kullanılır.
+        """
+        threading.Thread(
+            target=warm_extension_cache, daemon=True, name="warm-extensions"
+        ).start()
 
     def _apply_window_icon(self) -> None:
         """Başlık çubuğu, görev çubuğu ve alt pencereler için uygulama ikonu.
@@ -491,14 +505,38 @@ class MainWindow(_Root):  # type: ignore[misc]
     def _on_drop(self, event) -> None:
         self._add_paths(self.tk.splitlist(event.data))
 
+    @staticmethod
+    def _dialog_filetypes() -> list[tuple[str, str]]:
+        """Dosya seçme penceresinin süzgeçleri.
+
+        Tek bir devasa desen listesi yerine gruplar sunulur: 70 uzantılık tek
+        satır hem okunaksızdır hem de bazı Windows sürümlerinde kırpılır.
+        """
+        known = supported_extensions()
+
+        def group(*extensions: str) -> str:
+            return " ".join(f"*{e}" for e in extensions if e in known)
+
+        groups = [
+            ("Tüm desteklenen belgeler", " ".join(f"*{e}" for e in sorted(known))),
+            ("PDF", group(".pdf")),
+            ("Word", group(".docx", ".doc", ".odt", ".rtf", ".dotx")),
+            ("PowerPoint", group(".pptx", ".ppt", ".odp")),
+            ("Excel / tablo", group(".xlsx", ".xls", ".ods", ".csv")),
+            ("Görüntü", group(".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp")),
+            ("Metin / işaretleme", group(".md", ".txt", ".html", ".htm", ".xhtml", ".tex", ".adoc")),
+            ("E-kitap", group(".epub")),
+        ]
+        # Bu docling sürümünde karşılığı olmayan grupları gösterme.
+        return [(label, patterns) for label, patterns in groups if patterns] + [
+            ("Tüm dosyalar", "*.*")
+        ]
+
     def add_files(self) -> None:
         paths = filedialog.askopenfilenames(
             title="Dönüştürülecek dosyaları seçin",
             initialdir=self.settings.last_input_dir or None,
-            filetypes=[
-                ("Desteklenen belgeler", " ".join(f"*{e}" for e in sorted(supported_extensions()))),
-                ("Tüm dosyalar", "*.*"),
-            ],
+            filetypes=self._dialog_filetypes(),
         )
         if paths:
             self.settings.last_input_dir = str(Path(paths[0]).parent)
