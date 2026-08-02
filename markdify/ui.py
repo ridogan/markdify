@@ -10,12 +10,13 @@ import time
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
+import tkinter as tk
 from tkinter import filedialog, messagebox
 
 import customtkinter as ctk
 
 from . import __version__, environment
-from .config import APP_NAME, LOG_PATH, Settings, logger
+from .config import APP_NAME, ICON_PATH, LOG_PATH, LOGO_PATH, Settings, logger
 from .conversion import (
     ConversionError,
     ConversionOptions,
@@ -156,11 +157,37 @@ class MainWindow(_Root):  # type: ignore[misc]
         self.geometry("1460x820")
         self.minsize(1000, 600)
         self.protocol("WM_DELETE_WINDOW", self._on_close)
+        self._apply_window_icon()
 
         self._build_ui()
         self._refresh_environment_banner()
         self._drain_events()
         logger.info("Ortam: %s", environment.environment_report())
+
+    def _apply_window_icon(self) -> None:
+        """Başlık çubuğu, görev çubuğu ve alt pencereler için uygulama ikonu.
+
+        Windows'ta ``.ico`` tercih edilir: çok çözünürlüklü olduğu için her yerde
+        (16 px başlık çubuğu, 32 px görev çubuğu, 256 px Alt+Tab) net görünür.
+        ``default=True`` ikonu ayarlar penceresi gibi alt pencerelere de taşır.
+        PNG yedeği Windows dışı ortamlar ve ``.ico`` okunamazsa devreye girer.
+        """
+        if ICON_PATH.exists():
+            try:
+                self.iconbitmap(default=str(ICON_PATH))
+                return
+            except Exception as exc:
+                logger.debug("iconbitmap başarısız (%s), PNG'ye düşülüyor.", exc)
+
+        if LOGO_PATH.exists():
+            try:
+                self._icon_image = tk.PhotoImage(file=str(LOGO_PATH))
+                self.iconphoto(True, self._icon_image)  # referans tutulmalı
+                return
+            except Exception as exc:
+                logger.debug("iconphoto başarısız: %s", exc)
+
+        logger.warning("Uygulama ikonu bulunamadı: %s", ICON_PATH)
 
     # ================================================================== #
     # Arayüz kurulumu

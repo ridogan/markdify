@@ -1,3 +1,5 @@
+<img src="assets/markdify-logo.png" alt="Markdify" width="120" align="right">
+
 # Markdify
 
 PDF, Word, PowerPoint, Excel, e-kitap ve görüntü dosyalarını [Docling](https://github.com/docling-project/docling)
@@ -102,6 +104,9 @@ PDF dönüşümleri bundan etkilenmez.
 ```
 markdify/
 ├── app.py                  # giriş noktası (günlükleme + pencere)
+├── assets/
+│   ├── markdify-logo.png   # kaynak logo (kare, saydam)
+│   └── markdify.ico        # pencere ve kısayol ikonu (16–256 px)
 ├── markdify/
 │   ├── config.py           # yollar, ayar kalıcılığı, günlükleme
 │   ├── environment.py      # bağımlılık tespiti ve kurulumu
@@ -141,6 +146,10 @@ markdify/
   patlatır. Kısaltma yalnızca görünümdedir; kaydedilen metin tamdır.
 - `SourceView` açtığı PDF/görüntü tanıtıcısını dosya değişiminde ve kapanışta kapatır.
   Windows'ta kapatılmayan tanıtıcı dosyayı kilitler (taşıma/silme engellenir).
+- Görev çubuğu ikonu için pencere ikonunu ayarlamak **yetmez**: uygulama `pythonw.exe`
+  ile çalıştığından Windows onu Python'la aynı grupta sayar. `config.configure_runtime_env`
+  içindeki `SetCurrentProcessExplicitAppUserModelID` çağrısı bunu çözer ve pencere
+  oluşturulmadan önce çalışmalıdır.
 
 ## Lisans
 

@@ -104,13 +104,17 @@ Write-Host "[5/5] Masaüstü kısayolu oluşturuluyor..." -ForegroundColor Yello
 $venvPythonw = Join-Path $venv "Scripts\pythonw.exe"
 if (-not (Test-Path $venvPythonw)) { $venvPythonw = $venvPython }
 
+# Uygulama ikonu; yoksa pythonw'unkine düşülür (kısayol yine çalışır).
+$iconFile = Join-Path $root "assets\markdify.ico"
+if (Test-Path $iconFile) { $iconLocation = "$iconFile,0" } else { $iconLocation = "$venvPythonw,0" }
+
 $shortcut = Join-Path ([Environment]::GetFolderPath("Desktop")) "Markdify.lnk"
 $shell = New-Object -ComObject WScript.Shell
 $lnk = $shell.CreateShortcut($shortcut)
 $lnk.TargetPath       = $venvPythonw
 $lnk.Arguments        = "`"$root\app.py`""
 $lnk.WorkingDirectory = $root
-$lnk.IconLocation     = "$venvPythonw,0"
+$lnk.IconLocation     = $iconLocation
 $lnk.Description      = "Markdify — Belge Dönüştürücü"
 $lnk.Save()
 

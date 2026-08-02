@@ -16,6 +16,13 @@ SETTINGS_PATH = APP_DIR / "settings.json"
 LOG_DIR = APP_DIR / "logs"
 LOG_PATH = LOG_DIR / "markdify.log"
 
+ASSETS_DIR = APP_DIR / "assets"
+ICON_PATH = ASSETS_DIR / "markdify.ico"   # Windows pencere/kısayol ikonu
+LOGO_PATH = ASSETS_DIR / "markdify-logo.png"  # Windows dışı ve yüksek çözünürlük
+
+# Görev çubuğunun uygulamayı Python'un altında gruplamaması için gereken kimlik.
+APP_USER_MODEL_ID = "ridogan.Markdify.1"
+
 logger = logging.getLogger("markdify")
 
 
@@ -63,6 +70,25 @@ def configure_runtime_env() -> None:
     o da arka uç seçimiyle çözülür (bkz. ``conversion.resolve_pdf_backend``).
     """
     os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
+    _set_app_user_model_id()
+
+
+def _set_app_user_model_id() -> None:
+    """Görev çubuğu ikonunun uygulamaya ait olmasını sağlar.
+
+    Uygulama ``pythonw.exe`` ile çalıştığı için Windows onu varsayılan olarak
+    Python yorumlayıcısıyla aynı grupta sayar ve görev çubuğunda Python ikonunu
+    gösterir — pencere ikonu ayarlansa bile. Sürece kendi kimliğini vermek bunu
+    çözer; pencere oluşturulmadan ÖNCE çağrılmalıdır.
+    """
+    if sys.platform != "win32":
+        return
+    try:
+        import ctypes
+
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(APP_USER_MODEL_ID)
+    except Exception as exc:  # kritik değil: yalnızca ikon gruplamasını etkiler
+        logger.debug("AppUserModelID ayarlanamadı: %s", exc)
 
 
 @dataclass
