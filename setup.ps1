@@ -1,4 +1,4 @@
-# Markdify — kurulum betiği
+﻿# Markdify — kurulum betiği
 #
 # Bu klasörü hedef bilgisayara kopyalayıp kur.bat dosyasına çift tıklamak yeterlidir.
 # Betik şunları yapar:
