@@ -5,17 +5,44 @@
 PDF, Word, PowerPoint, Excel, e-kitap ve görüntü dosyalarını [Docling](https://github.com/docling-project/docling)
 ile **Markdown / JSON / düz metin / HTML** biçimine çeviren masaüstü uygulaması.
 
-## Kurulum (yeni bilgisayar)
+## Kurulum
 
-Bu klasörü hedef bilgisayara kopyalayın ve **`kur.bat`** dosyasına çift tıklayın. Betik:
+### Yol 1 — Kurulum sihirbazı (önerilen)
 
-1. Python yoksa kurar (winget ile)
-2. Klasör içinde izole bir sanal ortam (`.venv`) oluşturur
-3. Gerekli paketleri kurar (docling ~2 GB, ilk kurulum uzun sürer)
-4. LibreOffice yoksa kurar (isteğe bağlı)
-5. Masaüstüne konsolsuz bir kısayol ekler
+`Markdify-Setup-<sürüm>.exe` dosyasını çalıştırıp sihirbazı izleyin. Sihirbaz uygulama
+dosyalarını kopyalar, ardından Python'u, sanal ortamı ve paketleri kurar; Başlat menüsü
+ile masaüstü kısayollarını ve **Programlar listesinde bir kaldırma girdisi** oluşturur.
 
-Kurulum sonrası masaüstündeki **“Markdify”** kısayolundan başlatın.
+Kurulumu kaldırmak: *Ayarlar → Uygulamalar → Markdify → Kaldır*. Sanal ortam, günlükler
+ve ayarlar da temizlenir.
+
+### Yol 2 — Depodan (geliştirici)
+
+Depoyu klonlayıp **`kur.bat`** dosyasına çift tıklayın. Betik aynı adımları uygular ama
+kaldırma girdisi oluşturmaz.
+
+Her iki yolda da:
+
+1. Python yoksa kurulur (winget ile)
+2. Klasör içinde izole bir sanal ortam (`.venv`) oluşturulur
+3. Paketler kurulur (docling ~2 GB, internet hızına göre 10–30 dakika)
+4. LibreOffice yoksa kurulur (isteğe bağlı)
+
+Kurulum sonrası **“Markdify”** kısayolundan başlatın.
+
+> Kurulum klasörünün yolu ASCII olmalıdır (varsayılan `C:\Markdify`). Türkçe karakterli
+> bir yol seçerseniz sihirbaz uyarır; bkz. [Bilinen kısıt](#bilinen-kısıt-ascii-olmayan-kurulum-yolu).
+
+### Kurulum sihirbazını derlemek
+
+```powershell
+winget install -e --id JRSoftware.InnoSetup
+powershell -ExecutionPolicy Bypass -File installer\build.ps1
+```
+
+Çıktı `dist\Markdify-Setup-<sürüm>.exe` olur (~2,8 MB). Python paketleri sihirbaza
+**gömülmez**: gömülü hâli ~2,5 GB'lık bir dosya demek olurdu ve GitHub'ın 100 MB dosya
+sınırını aşardı. Paketler kurulum sırasında indirilir.
 
 ## Kullanım
 
@@ -127,6 +154,9 @@ markdify/
 │   ├── markdown_view.py    # markdown ayrıştırıcı + biçimli görüntüleyici
 │   ├── source_view.py      # kaynak belge (PDF/görüntü) sayfa önizlemesi
 │   └── ui.py               # CustomTkinter ana pencere
+├── installer/
+│   ├── markdify.iss        # Inno Setup kurulum sihirbazı tanımı
+│   └── build.ps1           # sihirbazı derler -> dist\Markdify-Setup-*.exe
 ├── requirements.txt
 ├── setup.ps1               # kurulum betiği
 ├── kur.bat                 # setup.ps1 için çift tıklanabilir sarmalayıcı
@@ -166,6 +196,14 @@ markdify/
   patlatır. Kısaltma yalnızca görünümdedir; kaydedilen metin tamdır.
 - `SourceView` açtığı PDF/görüntü tanıtıcısını dosya değişiminde ve kapanışta kapatır.
   Windows'ta kapatılmayan tanıtıcı dosyayı kilitler (taşıma/silme engellenir).
+- Python'u ararken **PATH'e güvenmeyin**. Windows, PATH'in başına Microsoft Store
+  yönlendirme kısayolları koyar (`WindowsApps\python.exe`); bunlar gerçek Python değildir,
+  çalıştırılınca "Python bulunamadı" yazarlar. `py` başlatıcısı da her kurulumda bulunmaz.
+  Güvenilir kaynak kayıt defterindeki `SOFTWARE\Python\PythonCore\<sürüm>\InstallPath`
+  girdisidir (bkz. `installer\markdify.iss` içindeki `PythonFromRegistry`).
+- PowerShell betiklerini **UTF-8 BOM** ile kaydedin. Windows PowerShell 5.1 BOM'suz
+  dosyaları ANSI okur; Türkçe karakterler dizgeyi kırar ve betik sözdizimi hatasıyla
+  hiç çalışmaz.
 - Görev çubuğu ikonu için pencere ikonunu ayarlamak **yetmez**: uygulama `pythonw.exe`
   ile çalıştığından Windows onu Python'la aynı grupta sayar. `config.configure_runtime_env`
   içindeki `SetCurrentProcessExplicitAppUserModelID` çağrısı bunu çözer ve pencere
