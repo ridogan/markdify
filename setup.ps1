@@ -10,7 +10,7 @@
 #
 # .venv'in uygulama klasöründe olması yalnızca temizlik için değil, aynı zamanda
 # bir HATA DÜZELTMESİDİR: docling-parse'ın C++ katmanı, kurulum yolunda ASCII
-# dışı karakter (örn. "C:\Users\Rıdvan") olduğunda PDF kaynaklarını açamaz.
+# dışı karakter (örn. "C:\Users\Kullanıcı") olduğunda PDF kaynaklarını açamaz.
 
 $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot

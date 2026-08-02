@@ -74,7 +74,7 @@ metin ve HTML çıktıları ham hâlleriyle gösterilir.
 
 Docling'in yüksek kaliteli PDF ayrıştırıcısı `docling-parse`, yerel bir C++ eklentisidir
 ve kaynak dosyalarını **dar (narrow) karakterli yol** ile açar. Kurulum yolunda Türkçe
-karakter varsa (örn. `C:\Users\Rıdvan\...`) bu dosyaları bulamaz ve **her PDF dönüşümü**
+karakter varsa (örn. `C:\Users\Kullanıcı\...`) bu dosyaları bulamaz ve **her PDF dönüşümü**
 şu hatayla başarısız olur:
 
 ```
@@ -141,5 +141,16 @@ markdify/
   patlatır. Kısaltma yalnızca görünümdedir; kaydedilen metin tamdır.
 - `SourceView` açtığı PDF/görüntü tanıtıcısını dosya değişiminde ve kapanışta kapatır.
   Windows'ta kapatılmayan tanıtıcı dosyayı kilitler (taşıma/silme engellenir).
+
+## Lisans
+
+[MIT](LICENSE) — serbestçe kullanabilir, değiştirebilir ve dağıtabilirsiniz; tek şart
+telif bildiriminin korunmasıdır. Yazılım "olduğu gibi", garanti verilmeden sunulur.
+
+Kullanılan başlıca bileşenler ve lisansları: [Docling](https://github.com/docling-project/docling)
+(MIT), [CustomTkinter](https://github.com/TomSchimansky/CustomTkinter) (MIT),
+[pypdfium2](https://github.com/pypdfium2-team/pypdfium2) (BSD-3-Clause / Apache-2.0),
+[Pillow](https://github.com/python-pillow/Pillow) (MIT-CMU). LibreOffice yalnızca harici
+bir program olarak çağrılır, koda bağlanmaz.
 - Model önbelleği varsayılan Hugging Face konumunda kalır; o katman saf Python G/Ç
   kullandığı için ASCII olmayan yollardan etkilenmez.

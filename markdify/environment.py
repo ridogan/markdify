@@ -71,7 +71,7 @@ def docling_parse_usable() -> bool:
 
     ``docling_parse`` yerel bir C++ eklentisidir ve kaynak dosyalarını kendi
     kurulum dizininden dar (narrow) karakterli yol ile açar. Kurulum yolu ASCII
-    dışı karakter içeriyorsa (örn. ``C:\\Users\\Rıdvan\\...``) bu dosyaları
+    dışı karakter içeriyorsa (örn. ``C:\\Users\\Kullanıcı\\...``) bu dosyaları
     bulamaz ve her PDF dönüşümü ``DocumentLoadError`` ile başarısız olur.
     """
     spec = importlib.util.find_spec("docling_parse")
